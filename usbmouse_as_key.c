@@ -2,20 +2,45 @@
 #include <linux/usb.h>
 #include <linux/errno.h>
 #include <linux/kernel.h>
+#include <linux/hid.h>
 
-#define USB_SKEL_VENDOR_ID      0xfff0                                                                                                        
-#define USB_SKEL_PRODUCT_ID     0xfff0
+static struct usb_device_id usbmouse_table [] = {
+	{ USB_INTERFACE_INFO(USB_INTERFACE_CLASS_HID, USB_INTERFACE_SUBCLASS_BOOT,
+		USB_INTERFACE_PROTOCOL_MOUSE) },
+	{ }	/* Terminating entry */
+};
 
-static struct usb_device_id skel_table [] = {                                                                                                 
-	{ USB_DEVICE(USB_SKEL_VENDOR_ID, USB_SKEL_PRODUCT_ID) },
-	{ }                                     /* Terminating entry */
-};   
-
-
-static int usbmouse_probe(struct usb_interface *interface, const struct usb_device_id *id)
+static int usbmouse_probe(struct usb_interface *intf, const struct usb_device_id *id)
 {
-	printk("usbmouse_probe...\n");
+	struct usb_device* usb_dev;
+	struct usb_host_interface* interface;
+	struct usb_endpoint_descriptor *endpoint;
+	struct input_dev* input_dev;
 
+	usb_dev = interface_to_usbdev(interface);
+	interface = interface->cur_altsetting;
+	
+	printk("usbmouse_probe...\n");
+	
+	printk("vendor:%d\n", usb_dev->descriptor.idVendor);
+	printk("product:%d\n", usb_dev->descriptor.idProduct);
+	printk("manufacture:%d\n", usb_dev->descriptor.iManufacturer);
+	
+	input_dev = input_allocate_device();
+	if (!input_dev)
+		return -ENOMEM;
+
+	input_dev->name = "s3c2410_button";
+
+	set_bit(EV_KEY, input_dev->evbit);
+	set_bit(EV_REP, input_dev->evbit);
+	
+	set_bit(KEY_L, input_dev->keybit);
+	set_bit(KEY_R, input_dev->keybit);
+	set_bit(KEY_ENTER, input_dev->keybit);
+	set_bit(KEY_BACKSLASH, input_dev->keybit);
+
+	err = input_register_device(button_input_dev);
 	return 0;
 }
 
